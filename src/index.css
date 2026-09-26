@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+@theme {
+  --color-void: #06070A;
+  --color-hull: #0C0E13;
+  --color-plate: #14171E;
+  --color-edge: #22262F;
+  --color-rule: #2E3440;
+
+  --color-ink: #F2F4F8;
+  --color-dim: #9BA3B2;
+  --color-faint: #5F6877;
+
+  /* Taken off the renders themselves: the engine glow and the wing stripe. */
+  --color-ember: #FF6B2C;
+  --color-stripe: #E5484D;
+  --color-signal: #4DA3FF;
+
+  --font-display: "Inter Tight", system-ui, sans-serif;
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+@layer base {
+  html {
+    background: var(--color-void);
+    color-scheme: dark;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* Lenis drives scrolling; native smooth-scroll would fight it. */
+  html.lenis { scroll-behavior: auto !important; }
+  body {
+    background: var(--color-void);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    overflow-x: hidden;
+  }
+  ::selection { background: var(--color-ember); color: var(--color-void); }
+
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.03em;
+    text-wrap: balance;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-ember);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+}
+
+@layer utilities {
+  /* Small caps-ish technical label used for section eyebrows and spec keys. */
+  .label {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-faint);
+  }
+  .rule { border-color: var(--color-rule); }
+  .grain::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,22 @@
+name = "hangar"
+compatibility_date = "2026-09-01"
+pages_build_output_dir = "dist"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "hangar"
+database_id = "local"
+migrations_dir = "migrations"
+
+# Source .blend files, texture sets and full-res frame sequences live here.
+# They are served through signed URLs from functions/api/download.ts, never from git.
+[[r2_buckets]]
+binding = "FILES"
+bucket_name = "hangar-assets"
+
+[vars]
+ENVIRONMENT = "development"
+DOWNLOAD_TTL_SECONDS = "300"
+REQUIRE_EMAIL = "false"
+
+SIGNING_KEY = "dev-only-change-me-in-production"

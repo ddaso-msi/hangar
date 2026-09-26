@@ -1,0 +1,77 @@
+{
+  "poster": {
+    "aspect": 1.6,
+    "widths": [
+      400,
+      800,
+      1600
+    ]
+  },
+  "top": {
+    "aspect": 1.6,
+    "widths": [
+      400,
+      800,
+      1600
+    ]
+  },
+  "front": {
+    "aspect": 1.6,
+    "widths": [
+      400,
+      800,
+      1600
+    ]
+  },
+  "profile": {
+    "aspect": 1.6,
+    "widths": [
+      400,
+      800,
+      1600
+    ]
+  },
+  "rear": {
+    "aspect": 1.6,
+    "widths": [
+      400,
+      800,
+      1600
+    ]
+  },
+  "detail-cockpit": {
+    "aspect": 1.5789,
+    "widths": [
+      400,
+      800
+    ]
+  },
+  "detail-exhaust": {
+    "aspect": 1.5789,
+    "widths": [
+      400,
+      800
+    ]
+  },
+  "detail-intake": {
+    "aspect": 1.5789,
+    "widths": [
+      400,
+      800
+    ]
+  },
+  "seam": {
+    "aspect": 0.5625,
+    "widths": [
+      400,
+      800
+    ]
+  },
+  "first": {
+    "aspect": 0.5625,
+    "widths": [
+      400,
+      800
+    ]
+  }
+}

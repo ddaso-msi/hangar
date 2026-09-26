@@ -1,0 +1,16 @@
+{
+  "slug": "at-at",
+  "aspect": 1.7778,
+  "tiers": {
+    "desktop": {
+      "count": 60,
+      "width": 900,
+      "bytes": 845571
+    },
+    "mobile": {
+      "count": 30,
+      "width": 480,
+      "bytes": 149892
+    }
+  }
+}

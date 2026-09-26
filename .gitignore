@@ -1,0 +1,12 @@
+node_modules
+dist
+.wrangler
+.env
+.env.local
+.DS_Store
+*.local
+# Web-optimized assets under public/assets/ ARE committed (~9 MB): Pages builds
+# from git and has no access to SOURCE_ROOT. Source .blend/4K textures never are.
+
+# Packaged source zips and texture sets: served from R2, never committed.
+.downloads

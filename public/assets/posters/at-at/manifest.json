@@ -1,0 +1,68 @@
+{
+  "poster": {
+    "aspect": 1.5652,
+    "widths": [
+      400,
+      800,
+      1600
+    ]
+  },
+  "front": {
+    "aspect": 1.4167,
+    "widths": [
+      400,
+      800,
+      1600
+    ]
+  },
+  "side": {
+    "aspect": 1.4167,
+    "widths": [
+      400,
+      800,
+      1600
+    ]
+  },
+  "top": {
+    "aspect": 0.6875,
+    "widths": [
+      400,
+      800
+    ]
+  },
+  "rear": {
+    "aspect": 1.1538,
+    "widths": [
+      400,
+      800
+    ]
+  },
+  "detail-knee": {
+    "aspect": 1.3333,
+    "widths": [
+      400,
+      800
+    ]
+  },
+  "detail-foot": {
+    "aspect": 0.7333,
+    "widths": [
+      400,
+      800
+    ]
+  },
+  "detail-guns": {
+    "aspect": 1.3636,
+    "widths": [
+      400,
+      800
+    ]
+  },
+  "first": {
+    "aspect": 1.7778,
+    "widths": [
+      400,
+      800
+    ]
+  }
+}
