@@ -28,61 +28,75 @@ export const PLATE_WIDTHS: Record<string, Record<string, number[]>> = {
     ],
     "detail-cockpit": [
       400,
-      800
+      800,
+      1500
     ],
     "detail-exhaust": [
       400,
-      800
+      800,
+      1500
     ],
     "detail-intake": [
       400,
-      800
+      800,
+      1500
     ],
     "seam": [
       400,
-      800
+      800,
+      1080
     ],
     "first": [
       400,
-      800
+      800,
+      1080
     ]
   },
   "tie-fighter": {
     "poster": [
       400,
-      800
+      800,
+      1000
     ],
     "front": [
       400,
-      800
+      800,
+      1000
     ],
     "side": [
       400,
-      800
+      800,
+      1000
     ],
     "top": [
       400,
-      800
+      800,
+      1200
     ],
     "rear": [
       400,
-      800
+      800,
+      1000
     ],
     "detail-hub": [
       400,
-      800
+      800,
+      1200
     ],
     "detail-window": [
       400,
-      800
+      800,
+      1200
     ],
     "detail-panel": [
       400,
-      800
+      800,
+      1200
     ],
     "seam": [
       400,
-      800
+      800,
+      1000
     ]
   },
   "at-at": {
@@ -103,29 +117,185 @@ export const PLATE_WIDTHS: Record<string, Record<string, number[]>> = {
     ],
     "top": [
       400,
-      800
+      800,
+      1100
     ],
     "rear": [
       400,
-      800
+      800,
+      1500
     ],
     "detail-knee": [
       400,
-      800
+      800,
+      1400
     ],
     "detail-foot": [
       400,
-      800
+      800,
+      1100
     ],
     "detail-guns": [
       400,
-      800
+      800,
+      1500
     ],
     "first": [
       400,
-      800
+      800,
+      1280
+    ]
+  },
+  "r2-d2": {
+    "poster": [
+      400,
+      800,
+      1400
+    ],
+    "front": [
+      400,
+      800,
+      1200
+    ],
+    "side": [
+      400,
+      800,
+      1200
+    ],
+    "rear": [
+      400,
+      800,
+      1200
+    ],
+    "detail-dome": [
+      400,
+      800,
+      1500
+    ],
+    "detail-low": [
+      400,
+      800,
+      1400
+    ]
+  },
+  "b1-battle-droid": {
+    "poster": [
+      400,
+      800,
+      1400
+    ],
+    "front": [
+      400,
+      800,
+      1150
+    ],
+    "side": [
+      400,
+      800,
+      1150
+    ],
+    "top": [
+      400,
+      800,
+      1400
+    ],
+    "rear": [
+      400,
+      800,
+      1150
+    ],
+    "detail-head": [
+      400,
+      800,
+      1500
+    ],
+    "detail-pack": [
+      400,
+      800,
+      1500
+    ],
+    "detail-knee": [
+      400,
+      800,
+      1500
+    ],
+    "seam": [
+      400,
+      800,
+      1280
+    ],
+    "first": [
+      400,
+      800,
+      1280
     ]
   }
+}
+
+export const PLATE_ASPECT: Record<string, Record<string, number>> = {
+  "starfighter": {
+    "poster": 1.6,
+    "top": 1.6,
+    "front": 1.6,
+    "profile": 1.6,
+    "rear": 1.6,
+    "detail-cockpit": 1.5789,
+    "detail-exhaust": 1.5789,
+    "detail-intake": 1.5789,
+    "seam": 0.5625,
+    "first": 0.5625
+  },
+  "tie-fighter": {
+    "poster": 0.9569,
+    "front": 0.9569,
+    "side": 0.9569,
+    "top": 1.2,
+    "rear": 0.9569,
+    "detail-hub": 1.2,
+    "detail-window": 1.2,
+    "detail-panel": 1.2,
+    "seam": 0.9569
+  },
+  "at-at": {
+    "poster": 1.5652,
+    "front": 1.4167,
+    "side": 1.4167,
+    "top": 0.6875,
+    "rear": 1.1538,
+    "detail-knee": 1.3333,
+    "detail-foot": 0.7333,
+    "detail-guns": 1.3636,
+    "first": 1.7778
+  },
+  "r2-d2": {
+    "poster": 0.8,
+    "front": 0.7059,
+    "side": 0.7059,
+    "rear": 0.7059,
+    "detail-dome": 1.25,
+    "detail-low": 0.875
+  },
+  "b1-battle-droid": {
+    "poster": 0.7778,
+    "front": 0.6571,
+    "side": 0.6571,
+    "top": 1,
+    "rear": 0.6571,
+    "detail-head": 1,
+    "detail-pack": 1,
+    "detail-knee": 1,
+    "seam": 1.7778,
+    "first": 1.7778
+  }
+}
+
+/** Measured backdrop colour of each model's poster render. */
+export const POSTER_BACKDROP: Record<string, string> = {
+  "starfighter": "#0d141f",
+  "tie-fighter": "#bdbebf",
+  "at-at": "#bc9255",
+  "r2-d2": "#595d63",
+  "b1-battle-droid": "#010101"
 }
 
 export interface SeamSpec { view: [number, number, number]; stars: boolean; aspect: number; fill: number; backdrop: string }
@@ -151,5 +321,16 @@ export const SEAMS: Record<string, SeamSpec> = {
     "aspect": 0.9569,
     "fill": 0.375,
     "backdrop": "#bdbebf"
+  },
+  "b1-battle-droid": {
+    "view": [
+      -3.75,
+      0.02,
+      4.15
+    ],
+    "stars": false,
+    "aspect": 1.7778,
+    "fill": 0.1203,
+    "backdrop": "#010101"
   }
 }

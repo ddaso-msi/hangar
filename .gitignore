@@ -10,3 +10,4 @@ dist
 
 # Packaged source zips and texture sets: served from R2, never committed.
 .downloads
+*.tsbuildinfo

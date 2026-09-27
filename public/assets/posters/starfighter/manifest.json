@@ -43,35 +43,40 @@
     "aspect": 1.5789,
     "widths": [
       400,
-      800
+      800,
+      1500
     ]
   },
   "detail-exhaust": {
     "aspect": 1.5789,
     "widths": [
       400,
-      800
+      800,
+      1500
     ]
   },
   "detail-intake": {
     "aspect": 1.5789,
     "widths": [
       400,
-      800
+      800,
+      1500
     ]
   },
   "seam": {
     "aspect": 0.5625,
     "widths": [
       400,
-      800
+      800,
+      1080
     ]
   },
   "first": {
     "aspect": 0.5625,
     "widths": [
       400,
-      800
+      800,
+      1080
     ]
   }
 }

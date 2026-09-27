@@ -1,12 +1,15 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { bySlug, plateSrc } from '../lib/catalog'
+import { PLATE_ASPECT, POSTER_BACKDROP } from '../lib/plates.generated'
 import type { Model as ModelType } from '../lib/catalog'
 import { FrameSequence } from '../scroll/FrameSequence'
 import { Plate } from '../ui/Plate'
 import { Reveal } from '../ui/Reveal'
 import { SpecTable } from '../ui/SpecTable'
 import { DownloadPanel } from '../ui/DownloadPanel'
+import { ErrorBoundary } from '../ui/ErrorBoundary'
+import { hasWebGL } from '../three/webgl'
 
 // three.js is a third of the bundle. It must never load on a page without a model.
 const Inspector = lazy(() =>
@@ -18,7 +21,11 @@ const PLATE_LABEL: Record<string, string> = {
   'detail-cockpit': 'Canopy', 'detail-exhaust': 'Exhaust', 'detail-intake': 'Intake',
   'detail-hub': 'Hub', 'detail-window': 'Viewport', 'detail-panel': 'Wing panel',
   'detail-knee': 'Knee joint', 'detail-foot': 'Footpad', 'detail-guns': 'Chin guns',
+  'detail-dome': 'Dome', 'detail-low': 'Low angle',
 }
+
+/** Column classes for a plate grid, so three plates make one row rather than a row and an orphan. */
+const gridCols = (n: number) => (n === 3 ? 'sm:grid-cols-3' : n === 2 ? 'sm:grid-cols-2' : n >= 4 ? 'sm:grid-cols-2' : '')
 
 export default function ModelPage() {
   const { slug } = useParams()
@@ -65,9 +72,23 @@ function Hero({ model }: { model: ModelType }) {
       </FrameSequence>
     )
   }
+  // A portrait render cropped full-bleed on a landscape screen loses its top and
+  // bottom -- for a droid, the dome. On wide screens it is set whole against the
+  // right edge, its left edge feathered into a field of its own measured backdrop
+  // colour; on phones, where portrait fits, it goes full-bleed.
+  const portrait = (PLATE_ASPECT[model.slug]?.poster ?? 1.5) < 0.95
   return (
-    <section className="relative h-screen overflow-hidden">
-      <img src={plateSrc(model.slug, 'poster', 1600)} alt={`${model.title} hero render`} className="absolute inset-0 h-full w-full object-cover" fetchPriority="high" />
+    <section className="relative h-screen overflow-hidden" style={{ background: POSTER_BACKDROP[model.slug] }}>
+      <img
+        src={plateSrc(model.slug, 'poster', 1600)}
+        alt={`${model.title} hero render`}
+        fetchPriority="high"
+        className={
+          portrait
+            ? 'absolute inset-0 h-full w-full object-cover lg:left-auto lg:w-auto lg:max-w-[62%] lg:object-contain lg:[mask-image:linear-gradient(to_right,transparent,black_24%)]'
+            : 'absolute inset-0 h-full w-full object-cover'
+        }
+      />
       <div className="absolute inset-0 bg-gradient-to-b from-void/40 via-transparent to-void" />
       <Title model={model} />
     </section>
@@ -87,8 +108,12 @@ function LiveStage({ model }: { model: ModelType }) {
   const [mounted, setMounted] = useState(false)
   const [ready, setReady] = useState(false)
   const [active, setActive] = useState(false)
+  // No WebGL, or the viewer failed: the stage still scrubs and holds the final
+  // frame -- it simply never dissolves -- and says why.
+  const [noViewer, setNoViewer] = useState(() => !hasWebGL())
   const activeRef = useRef(false)
   const title = useRef<HTMLDivElement>(null)
+  const note = useRef<HTMLParagraphElement>(null)
 
   // With a flythrough: scrub to 50%, hold to 60%, dissolve by 72%, then the
   // model stays pinned for the last stretch. Without one, the still is all there
@@ -100,6 +125,7 @@ function LiveStage({ model }: { model: ModelType }) {
   // Start fetching three.js and the GLB shortly after load, or as soon as the
   // viewer starts scrolling -- whichever comes first. Long before the dissolve.
   useEffect(() => {
+    if (noViewer) return
     const go = () => setMounted(true)
     const later = () => window.setTimeout(go, 2000)
     if (document.readyState === 'complete') {
@@ -108,19 +134,20 @@ function LiveStage({ model }: { model: ModelType }) {
     }
     window.addEventListener('load', later, { once: true })
     return () => window.removeEventListener('load', later)
-  }, [])
+  }, [noViewer])
 
   const onProgress = (p: number) => {
-    if (!mounted && p > 0.05) setMounted(true)
+    if (!mounted && !noViewer && p > 0.05) setMounted(true)
     const shouldRun = p >= t.dissolve[0] - 0.03
     if (shouldRun !== activeRef.current) {
       activeRef.current = shouldRun
       setActive(shouldRun)
     }
-    if (title.current) {
-      const [a, b] = t.titleOut
-      title.current.style.opacity = String(1 - Math.min(1, Math.max(0, (p - a) / (b - a))))
-    }
+    const [a, b] = t.titleOut
+    const out = Math.min(1, Math.max(0, (p - a) / (b - a)))
+    if (title.current) title.current.style.opacity = String(1 - out)
+    // The fallback note takes the title's place once the title has gone.
+    if (note.current) note.current.style.opacity = String(out)
   }
 
   return (
@@ -134,23 +161,35 @@ function LiveStage({ model }: { model: ModelType }) {
       underlayReady={ready}
       onProgress={onProgress}
       underlay={
-        mounted && (
-          <Suspense fallback={null}>
-            <Inspector
-              slug={model.slug}
-              hotspots={model.hotspots}
-              lengthM={model.lengthM}
-              className="absolute inset-0 h-full w-full"
-              onReady={() => setReady(true)}
-              active={active}
-            />
-          </Suspense>
+        mounted && !noViewer && (
+          <ErrorBoundary fallback={null} onError={() => setNoViewer(true)}>
+            <Suspense fallback={null}>
+              <Inspector
+                slug={model.slug}
+                hotspots={model.hotspots}
+                lengthM={model.lengthM}
+                className="absolute inset-0 h-full w-full"
+                onReady={() => setReady(true)}
+                active={active}
+              />
+            </Suspense>
+          </ErrorBoundary>
         )
       }
     >
       <div ref={title}>
         <Title model={model} />
       </div>
+      {noViewer && (
+        <p
+          ref={note}
+          style={{ opacity: 0 }}
+          className="pointer-events-none absolute inset-x-0 bottom-10 mx-auto max-w-md px-5 text-center font-mono text-[11px] leading-relaxed text-dim"
+        >
+          This browser can't run the 3D viewer, so the model stays as a render. The views and
+          downloads below all still work.
+        </p>
+      )}
     </FrameSequence>
   )
 }
@@ -178,7 +217,7 @@ function Blueprints({ model }: { model: ModelType }) {
         </h2>
         <p className="mt-3 max-w-xl text-[14px] leading-relaxed text-dim">{model.summary}</p>
       </Reveal>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className={`grid gap-4 ${gridCols(model.plates.ortho.length)}`}>
         {model.plates.ortho.map((name, i) => (
           <Reveal key={name} delay={i * 80}>
             <figure className="overflow-hidden rounded-lg border border-edge bg-hull">
@@ -203,7 +242,7 @@ function Details({ model }: { model: ModelType }) {
           <p className="label mb-2">Surface</p>
           <h2 className="font-display text-[clamp(1.7rem,3.2vw,2.5rem)] font-semibold">Close up</h2>
         </Reveal>
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className={`grid gap-4 ${model.plates.detail.length === 3 ? 'sm:grid-cols-3' : gridCols(model.plates.detail.length)}`}>
           {model.plates.detail.map((name, i) => (
             <Reveal key={name} delay={i * 80}>
               <figure className="overflow-hidden rounded-lg border border-edge bg-void">

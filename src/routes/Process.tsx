@@ -93,7 +93,7 @@ export default function Process() {
           The cinematic passes are not WebGL. They are the actual Cycles frames, re-encoded to an
           AVIF ladder and scrubbed by scroll position, because a pre-rendered frame will beat a
           realtime one every time. The live canvas only takes over once you have arrived at the
-          ship, and it loads a Meshopt-compressed GLB that is 78% smaller than the Blender export.
+          ship, and it loads a web GLB — textures re-encoded to WebP — that is 78% smaller than the Blender export.
         </p>
       </Reveal>
     </div>

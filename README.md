@@ -49,7 +49,7 @@ re-export:
 
 | Script | Does | Writes |
 |---|---|---|
-| `optimize-glb.mjs` | Meshopt + WebP; measures hotspot anchors and silhouette | `public/assets/models/*.glb`, `anchors.generated.ts` |
+| `optimize-glb.mjs` | WebP textures, optional simplify + quantize per model; measures anchors, silhouette and centre | `public/assets/models/*.glb`, `anchors.generated.ts` |
 | `build-sequence.mjs` | Frame sequence → desktop/mobile AVIF ladders | `public/assets/seq/` |
 | `make-posters.mjs` | Renders → responsive AVIF; measures each seam still | `public/assets/posters/`, `plates.generated.ts` |
 | `package-downloads.mjs` | Packs source scenes, zips textures, uploads with `--push` | `.downloads/`, `downloads.generated.ts`, R2, D1 |

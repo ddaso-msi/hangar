@@ -1,0 +1,82 @@
+{
+  "poster": {
+    "aspect": 0.7778,
+    "widths": [
+      400,
+      800,
+      1400
+    ]
+  },
+  "front": {
+    "aspect": 0.6571,
+    "widths": [
+      400,
+      800,
+      1150
+    ]
+  },
+  "side": {
+    "aspect": 0.6571,
+    "widths": [
+      400,
+      800,
+      1150
+    ]
+  },
+  "top": {
+    "aspect": 1,
+    "widths": [
+      400,
+      800,
+      1400
+    ]
+  },
+  "rear": {
+    "aspect": 0.6571,
+    "widths": [
+      400,
+      800,
+      1150
+    ]
+  },
+  "detail-head": {
+    "aspect": 1,
+    "widths": [
+      400,
+      800,
+      1500
+    ]
+  },
+  "detail-pack": {
+    "aspect": 1,
+    "widths": [
+      400,
+      800,
+      1500
+    ]
+  },
+  "detail-knee": {
+    "aspect": 1,
+    "widths": [
+      400,
+      800,
+      1500
+    ]
+  },
+  "seam": {
+    "aspect": 1.7778,
+    "widths": [
+      400,
+      800,
+      1280
+    ]
+  },
+  "first": {
+    "aspect": 1.7778,
+    "widths": [
+      400,
+      800,
+      1280
+    ]
+  }
+}

@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { Link } from 'react-router'
 import type { Model } from '../lib/catalog'
 import { Plate } from './Plate'
+import { PLATE_ASPECT } from '../lib/plates.generated'
 
 /**
  * Grid card. The turntable mp4 already exists in each Blender project, so hover
@@ -11,7 +12,8 @@ import { Plate } from './Plate'
 export function ModelCard({ model }: { model: Model }) {
   const video = useRef<HTMLVideoElement>(null)
   const [playing, setPlaying] = useState(false)
-  const hasLoop = model.slug === 'starfighter' || model.slug === 'at-at'
+  const hasLoop = !!model.hasLoop
+  const portrait = (PLATE_ASPECT[model.slug]?.poster ?? 1.5) < 0.9
 
   const enter = () => {
     if (!hasLoop) return
@@ -41,6 +43,9 @@ export function ModelCard({ model }: { model: Model }) {
           className={`h-full w-full object-cover transition-all duration-700 group-hover:scale-[1.03] ${
             playing ? 'opacity-0' : 'opacity-100'
           }`}
+          // A portrait render cropped to 4:3 should keep its top (a droid's dome,
+          // a walker's head) rather than centre on the midriff.
+          style={portrait ? { objectPosition: '50% 18%' } : undefined}
         />
         {hasLoop && (
           <video

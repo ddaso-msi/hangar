@@ -23,24 +23,69 @@ function mul(m, [x, y, z]) {
   ]
 }
 
-/** World-space vertex positions grouped by material name (e.g. "Glass_Baked" -> "Glass"). */
+function matMul(a, b) {
+  // Column-major 4x4 product a * b.
+  const o = new Array(16).fill(0)
+  for (let c = 0; c < 4; c++)
+    for (let r = 0; r < 4; r++)
+      for (let k = 0; k < 4; k++) o[c * 4 + r] += a[k * 4 + r] * b[c * 4 + k]
+  return o
+}
+
+/**
+ * World-space vertex positions in the rest pose, grouped by material name
+ * ("Glass_Baked" -> "Glass") and, for skinned meshes, also by bone name.
+ *
+ * A skinned vertex is not placed by its mesh node: the renderer places it with
+ * joint.worldMatrix * inverseBindMatrix. The rigs here are rigid (every vertex
+ * 100% on one bone), so that is one matrix per vertex -- and it is what the
+ * inspector will actually draw before any clip plays.
+ */
 export async function verticesByMaterial(path) {
   const doc = await io.read(path)
   const groups = {}
+  const bones = {}
+  const joints = {}
   for (const node of doc.getRoot().listNodes()) {
     const mesh = node.getMesh()
     if (!mesh) continue
+    const skin = node.getSkin()
     const world = node.getWorldMatrix()
+    let jointMats = null
+    let jointNames = null
+    if (skin) {
+      const ibm = skin.getInverseBindMatrices()
+      jointNames = skin.listJoints().map((j) => j.getName())
+      jointMats = skin.listJoints().map((j, i) => matMul(j.getWorldMatrix(), ibm.getElement(i, [])))
+      skin.listJoints().forEach((j) => (joints[j.getName()] = mul(j.getWorldMatrix(), [0, 0, 0])))
+    }
     for (const prim of mesh.listPrimitives()) {
       const name = (prim.getMaterial()?.getName() ?? 'none').replace(/_Baked$/, '')
       const pos = prim.getAttribute('POSITION')
       if (!pos) continue
+      const J = prim.getAttribute('JOINTS_0')
+      const W = prim.getAttribute('WEIGHTS_0')
       const out = (groups[name] ??= [])
-      const v = [0, 0, 0]
-      for (let i = 0; i < pos.getCount(); i++) out.push(mul(world, pos.getElement(i, v)))
+      const v = [0, 0, 0], j = [0, 0, 0, 0], w = [0, 0, 0, 0]
+      for (let i = 0; i < pos.getCount(); i++) {
+        pos.getElement(i, v)
+        if (jointMats && J && W) {
+          J.getElement(i, j)
+          W.getElement(i, w)
+          // Dominant bone. Rigid rigs have exactly one; blended ones are rare here
+          // and the dominant bone is within millimetres at rest.
+          let b = 0
+          for (let k = 1; k < 4; k++) if (w[k] > w[b]) b = k
+          const p = mul(jointMats[j[b]], v)
+          out.push(p)
+          ;(bones[jointNames[j[b]]] ??= []).push(p)
+        } else {
+          out.push(mul(world, v))
+        }
+      }
     }
   }
-  return groups
+  return { groups, bones, joints, parts: doc.getRoot().listMeshes().length, skinned: doc.getRoot().listSkins().length > 0 }
 }
 
 const bbox = (pts) => {
@@ -91,6 +136,22 @@ const RULES = {
       return [bb.c[X], bb.lo[Y], bb.c[Z]]
     },
   },
+  // A character, not a ship: it faces glTF +Z, up is +Y, its right hand side is
+  // -X. One baked material ("B1"), so everything is an extreme of the whole mesh.
+  'b1-battle-droid': {
+    // Tip of the drooping muzzle: the furthest-forward point above the shoulders.
+    muzzle: (g) => argmax(g.B1.filter((p) => p[Y] > 1.5), (p) => p[Z]),
+    // Top of the signal-reception antenna: the highest point on the droid.
+    antenna: (g) => argmax(g.B1, (p) => p[Y]),
+    // Back face of the backpack, at chest height.
+    backpack: (g) => {
+      const pack = g.B1.filter((p) => p[Y] > 1.25 && p[Y] < 1.55)
+      const back = argmax(pack, (p) => -p[Z])
+      return [bbox(pack).c[X], back[Y], back[Z]]
+    },
+    // Outer face of the right knee disc: the furthest -X point at knee height.
+    knee: (g) => argmax(g.B1.filter((p) => Math.abs(p[Y] - 0.56) < 0.05), (p) => -p[X]),
+  },
 }
 
 /**
@@ -116,15 +177,27 @@ function supportPoints(points, n = 96) {
 export async function measureAnchors(slug, glbPath) {
   const rules = RULES[slug]
   if (!rules) return null
-  const groups = await verticesByMaterial(glbPath)
+  const measured = await verticesByMaterial(glbPath)
+  const { groups } = measured
   const scene = bbox(Object.values(groups).flat())
   const round = (v) => +v.toFixed(3)
   const anchors = {}
   for (const [key, rule] of Object.entries(rules)) {
-    const p = rule(groups)
+    // Material rules take the groups; bone rules destructure { bones }.
+    const p = rule(Object.assign(Object.create(groups), { bones: measured.bones, joints: measured.joints }))
     anchors[key] = p.map((v, k) => round(v - scene.c[k]))
   }
   const all = Object.values(groups).flat()
   const hull = supportPoints(all).map((p) => p.map((v, k) => round(v - scene.c[k])))
-  return { anchors, hull, size: scene.size.map(round), materials: Object.keys(groups) }
+  return {
+    anchors,
+    hull,
+    size: scene.size.map(round),
+    // The inspector centres on this, not on a runtime bounding box: three.js cannot
+    // measure a skinned mesh's pose until its skeleton has been updated by a render.
+    centre: scene.c.map(round),
+    parts: measured.parts,
+    skinned: measured.skinned,
+    materials: Object.keys(groups),
+  }
 }

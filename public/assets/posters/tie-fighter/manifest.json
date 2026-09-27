@@ -3,63 +3,72 @@
     "aspect": 0.9569,
     "widths": [
       400,
-      800
+      800,
+      1000
     ]
   },
   "front": {
     "aspect": 0.9569,
     "widths": [
       400,
-      800
+      800,
+      1000
     ]
   },
   "side": {
     "aspect": 0.9569,
     "widths": [
       400,
-      800
+      800,
+      1000
     ]
   },
   "top": {
     "aspect": 1.2,
     "widths": [
       400,
-      800
+      800,
+      1200
     ]
   },
   "rear": {
     "aspect": 0.9569,
     "widths": [
       400,
-      800
+      800,
+      1000
     ]
   },
   "detail-hub": {
     "aspect": 1.2,
     "widths": [
       400,
-      800
+      800,
+      1200
     ]
   },
   "detail-window": {
     "aspect": 1.2,
     "widths": [
       400,
-      800
+      800,
+      1200
     ]
   },
   "detail-panel": {
     "aspect": 1.2,
     "widths": [
       400,
-      800
+      800,
+      1200
     ]
   },
   "seam": {
     "aspect": 0.9569,
     "widths": [
       400,
-      800
+      800,
+      1000
     ]
   }
 }

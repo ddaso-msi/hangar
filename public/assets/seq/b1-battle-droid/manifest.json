@@ -1,0 +1,16 @@
+{
+  "slug": "b1-battle-droid",
+  "aspect": 1.7778,
+  "tiers": {
+    "desktop": {
+      "count": 84,
+      "width": 900,
+      "bytes": 420003
+    },
+    "mobile": {
+      "count": 42,
+      "width": 480,
+      "bytes": 93203
+    }
+  }
+}

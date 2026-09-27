@@ -1,7 +1,8 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { OrbitControls, useGLTF, Html, AdaptiveDpr, Stars, Environment, Lightformer } from '@react-three/drei'
+import { OrbitControls, useGLTF, useAnimations, Html, AdaptiveDpr, Stars, Environment, Lightformer } from '@react-three/drei'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
+import { SkeletonUtils } from 'three-stdlib'
 import * as THREE from 'three'
 import type { Hotspot } from '../lib/catalog'
 import { ANCHORS } from '../lib/anchors.generated'
@@ -87,37 +88,98 @@ function ReadySignal({ onReady }: { onReady?: () => void }) {
   return null
 }
 
-function Model({ url, wireframe, explode }: { url: string; wireframe: boolean; explode: number }) {
-  const { scene } = useGLTF(url, false, true)
+/** Clips that loop; everything else plays once and holds its last frame. */
+const LOOPING = /(^|_)(Idle|March|Run)$/
 
-  // Centre on the bounding box, exactly as scripts/anchors.mjs does, so measured
-  // anchors land on the geometry they were measured from.
-  const { centred, rest } = useMemo(() => {
-    const clone = scene.clone(true)
-    const centre = new THREE.Box3().setFromObject(clone).getCenter(new THREE.Vector3())
-    clone.position.sub(centre)
+/** "B1_Turn90_L" -> "Turn 90 L", "B1_RogerRoger" -> "Roger Roger". */
+const clipLabel = (name: string) =>
+  name
+    .replace(/^[A-Z0-9]+_/, '')
+    .replace(/_/g, ' ')
+    .replace(/([a-z])([A-Z0-9])/g, '$1 $2')
+    .replace(/([0-9])([A-Z])/g, '$1 $2')
+
+function Model({
+  url,
+  wireframe,
+  explode,
+  centre,
+  clip,
+  onClips,
+}: {
+  url: string
+  wireframe: boolean
+  explode: number
+  /** Measured by scripts/anchors.mjs. Anchors and hull are relative to this same point. */
+  centre?: [number, number, number]
+  clip: string | null
+  onClips: (names: string[]) => void
+}) {
+  const { scene, animations } = useGLTF(url, false, true)
+  const root = useRef<THREE.Group>(null)
+
+  const { centred, rest, skinned } = useMemo(() => {
+    let skinned = false
+    scene.traverse((o) => {
+      if ((o as THREE.SkinnedMesh).isSkinnedMesh) skinned = true
+    })
+    // Object3D.clone() leaves a SkinnedMesh bound to the ORIGINAL bones, which
+    // are not in the rendered scene and never update: the mesh would render
+    // collapsed or frozen. SkeletonUtils rebinds the clone to its own bones.
+    const clone = skinned ? (SkeletonUtils.clone(scene) as THREE.Group) : scene.clone(true)
+    // Centre on the measured point rather than a runtime bounding box: three.js
+    // cannot measure a skinned mesh's pose until a render has updated its skeleton.
+    const c = centre ? new THREE.Vector3(...centre) : new THREE.Box3().setFromObject(clone).getCenter(new THREE.Vector3())
+    clone.position.sub(c)
     const rest = new Map<THREE.Object3D, THREE.Vector3>()
     clone.traverse((o) => {
       if ((o as THREE.Mesh).isMesh) rest.set(o, o.position.clone())
     })
-    return { centred: clone, rest }
-  }, [scene])
+    return { centred: clone, rest, skinned }
+  }, [scene, centre])
+
+  const { actions, mixer } = useAnimations(animations, root)
+
+  useEffect(() => {
+    onClips(animations.map((a) => a.name))
+  }, [animations, onClips])
+
+  useEffect(() => {
+    mixer.stopAllAction()
+    if (!clip) {
+      // Back to the bind pose, which for these rigs is the rest pose the seam still shows.
+      centred.traverse((o) => {
+        if ((o as THREE.SkinnedMesh).isSkinnedMesh) (o as THREE.SkinnedMesh).skeleton.pose()
+      })
+      return
+    }
+    const action = actions[clip]
+    if (!action) return
+    const loop = LOOPING.test(clip)
+    action.reset()
+    action.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, loop ? Infinity : 1)
+    action.clampWhenFinished = !loop
+    action.fadeIn(0.15).play()
+  }, [clip, actions, mixer, centred])
 
   useEffect(() => {
     centred.traverse((o) => {
       const mesh = o as THREE.Mesh
       if (!mesh.isMesh) return
       mesh.castShadow = mesh.receiveShadow = true
+      // A skinned mesh moves out of its static bounds when it animates; without
+      // this, three.js culls it as a limb swings out of the original box.
+      if (skinned) mesh.frustumCulled = false
       for (const m of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
         if ((m as THREE.MeshStandardMaterial).isMeshStandardMaterial) {
           ;(m as THREE.MeshStandardMaterial).wireframe = wireframe
         }
       }
     })
-  }, [centred, wireframe])
+  }, [centred, wireframe, skinned])
 
   // The bake joins each ship into one mesh per material, so "exploded" separates
-  // glass and glow from the hull — which is the actual part structure that exists.
+  // glass and glow from the hull -- which is the actual part structure that exists.
   useEffect(() => {
     let i = 0
     for (const [mesh, home] of rest) {
@@ -126,7 +188,11 @@ function Model({ url, wireframe, explode }: { url: string; wireframe: boolean; e
     }
   }, [rest, explode])
 
-  return <primitive object={centred} />
+  return (
+    <group ref={root}>
+      <primitive object={centred} />
+    </group>
+  )
 }
 
 function Lights({ r, light }: { r: number; light: boolean }) {
@@ -234,6 +300,10 @@ export function Inspector({ slug, hotspots, lengthM, className = 'relative', onR
   const [wireframe, setWireframe] = useState(false)
   const [exploded, setExploded] = useState(false)
   const [showSpots, setShowSpots] = useState(true)
+  const [clips, setClips] = useState<string[]>([])
+  const [clip, setClip] = useState<string | null>(null)
+  // Exploding pulls apart separate meshes; a single skinned mesh has none.
+  const canExplode = (measured?.parts ?? 2) > 1
   const controls = useRef<OrbitControlsImpl>(null)
   const touched = useRef(false)
 
@@ -282,10 +352,18 @@ export function Inspector({ slug, hotspots, lengthM, className = 'relative', onR
         {/* The flythrough ends in a starfield; so does the canvas, or the dissolve shows. */}
         {seam?.stars && <Stars radius={r * 12} depth={r * 6} count={2500} factor={r * 0.35} fade speed={0} />}
         <Suspense fallback={null}>
-          <Model url={`/assets/models/${slug}.glb`} wireframe={wireframe} explode={exploded ? r * 0.18 : 0} />
+          <Model
+            url={`/assets/models/${slug}.glb`}
+            wireframe={wireframe}
+            explode={exploded && canExplode ? r * 0.18 : 0}
+            centre={measured?.centre}
+            clip={clip}
+            onClips={setClips}
+          />
           {/* Inside the same Suspense boundary: it cannot run until the GLB has resolved. */}
           <ReadySignal onReady={onReady} />
-          {showSpots &&
+          {/* Anchors are measured in the rest pose; a playing clip moves the parts away from them. */}
+          {showSpots && !clip &&
             spots.map((s, i) => <Marker key={s.anchor} spot={s} at={measured!.anchors[s.anchor]} index={i} />)}
         </Suspense>
         <OrbitControls
@@ -318,9 +396,29 @@ export function Inspector({ slug, hotspots, lengthM, className = 'relative', onR
             <span className="w-px bg-edge" />
             <button onClick={() => zoom(1.25)} aria-label="Zoom out" className="px-3 py-1.5 font-mono text-[13px] leading-none text-dim transition hover:text-ember">−</button>
           </div>
-          {spots.length > 0 && <Toggle on={showSpots} onClick={() => setShowSpots((v) => !v)}>Hotspots</Toggle>}
+          {clips.length > 0 && (
+            <label className="relative">
+              <span className="sr-only">Animation</span>
+              <select
+                value={clip ?? ''}
+                onChange={(e) => setClip(e.target.value || null)}
+                className={`appearance-none rounded-full border py-1.5 pl-3 pr-7 font-mono text-[11px] uppercase tracking-[0.14em] outline-none transition ${
+                  clip ? 'border-ember bg-ember/15 text-ember' : 'border-edge bg-hull/80 text-dim backdrop-blur hover:border-faint hover:text-ink'
+                }`}
+              >
+                <option value="">Rest pose</option>
+                {clips.map((c) => (
+                  <option key={c} value={c}>
+                    {clipLabel(c)}
+                  </option>
+                ))}
+              </select>
+              <span aria-hidden="true" className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] text-faint">▾</span>
+            </label>
+          )}
+          {spots.length > 0 && !clip && <Toggle on={showSpots} onClick={() => setShowSpots((v) => !v)}>Hotspots</Toggle>}
           <Toggle on={wireframe} onClick={() => setWireframe((v) => !v)}>Wireframe</Toggle>
-          <Toggle on={exploded} onClick={() => setExploded((v) => !v)}>Exploded</Toggle>
+          {canExplode && <Toggle on={exploded} onClick={() => setExploded((v) => !v)}>Exploded</Toggle>}
           {coarse && held && <Toggle on onClick={() => setHeld(false)}>Done</Toggle>}
         </div>
       </div>

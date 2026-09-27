@@ -2,18 +2,15 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
+// No manualChunks. The inspector is lazy-imported, which already puts three.js in
+// its own chunk. A manualChunks group for three looked like a safeguard but under
+// Rolldown it also captures the group's dependencies -- React included -- so the
+// main bundle ended up importing React from the three chunk and every page
+// modulepreloaded 357 kB of WebGL it never used.
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   build: {
-    rollupOptions: {
-      output: {
-        // The inspector is already lazy-imported, so three.js lands in its own
-        // chunk. Naming it explicitly keeps that guarantee if the import graph
-        // ever changes: `/` must never pay for WebGL.
-        manualChunks(id: string) {
-          if (/node_modules\/(three|@react-three)\//.test(id)) return 'three'
-        },
-      },
-    },
+    // The three.js chunk is large by nature and only loads on live model pages.
+    chunkSizeWarningLimit: 1400,
   },
 })

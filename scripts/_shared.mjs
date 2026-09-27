@@ -92,6 +92,76 @@ export const MODELS = [
       ['detail-guns', 'renders/atat_guns.png'],
     ],
   },
+  {
+    slug: 'r2-d2',
+    project: 'R2-D2',
+    // Procedural materials (clearcoat, emissive LEDs), no bake yet: no GLB, no texture set.
+    source: { blend: 'scenes/r2d2.blend', include: ['scripts', 'README.md'] },
+    textures: null,
+    glb: null,
+    frames: null,
+    poster: 'renders/r2d2.png',
+    loop: null,
+    seam: null,
+    stills: [
+      ['front', 'renders/r2d2_front.png'],
+      ['side', 'renders/r2d2_side.png'],
+      ['rear', 'renders/r2d2_rear.png'],
+      ['detail-dome', 'renders/r2d2_dome.png'],
+      ['detail-low', 'renders/r2d2_low.png'],
+    ],
+  },
+  {
+    slug: 'b1-battle-droid',
+    project: 'BattleDroid',
+    // Rigged and animated. `export` in the source zip carries the full-detail
+    // .glb/.fbx with all 18 clips, the procedural .blend and HOW_TO_ANIMATE.md,
+    // so the download is animatable outside Blender too.
+    source: {
+      blend: 'scenes/droid_baked.blend',
+      include: ['scripts', 'README.md', 'export/HOW_TO_ANIMATE.md'],
+      // Every clip is stashed on an NLA track so it survives the repackage; fail if not.
+      clips: 18,
+      // export/ is rebuilt, not copied: the committed FBX records absolute source
+      // and texture paths. package-downloads.mjs re-runs the author's own export
+      // script, unmodified, from a neutral path, checks it with the author's own
+      // verifier, and ships these. The procedural .blend goes through the scene
+      // sanitiser like every other .blend.
+      exports: {
+        script: 'scripts/droid_export.py',
+        scene: 'scenes/droid_baked.blend',
+        verify: 'scripts/droid_verify.py',
+        stage: ['scenes', 'textures', 'scripts'],
+        files: ['b1_battle_droid.fbx', 'b1_battle_droid.glb'],
+        blend: 'b1_battle_droid.blend',
+      },
+    },
+    textures: 'textures',
+    glb: 'export/b1_battle_droid.glb',
+    // 106k tris. Simplified to 25% and quantised for the inspector: measured
+    // 1.66 MB through this pipeline, against 5.8 MB unchanged.
+    web: { simplify: 0.25, quantize: true },
+    frames: { dir: 'renders/walk', fallback: null, pattern: /^walk_\d+\.png$/ },
+    // Two strides of the march, then B1_Stop, which ends on the rest pose the
+    // GLB shows, with the floor faded to black over the last 12 frames -- so the
+    // last frame is the seam, its corners are the inspector's black, and the
+    // dissolve doesn't pop.
+    firstFrame: 'renders/walk/walk_0000.png',
+    poster: 'renders/droid.png',
+    loop: 'renders/droid_walk.mp4',
+    // The droid faces glTF +Z (a character, not a ship: engine convention).
+    // `view` is the walk camera's direction from the model, in glTF axes.
+    seam: { still: 'renders/walk/walk_0083.png', view: [-3.75, 0.02, 4.15], band: [0.05, 0.97], stars: false, contrast: 40 },
+    stills: [
+      ['front', 'renders/droid_front.png'],
+      ['side', 'renders/droid_side.png'],
+      ['top', 'renders/droid_top.png'],
+      ['rear', 'renders/droid_rear.png'],
+      ['detail-head', 'renders/droid_detail_head.png'],
+      ['detail-pack', 'renders/droid_detail_pack.png'],
+      ['detail-knee', 'renders/droid_detail_knee.png'],
+    ],
+  },
 ]
 
 export const bytes = (n) =>

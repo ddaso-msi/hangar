@@ -59,4 +59,4 @@ bpy.data.libraries.write(
 bpy.ops.wm.open_mainfile(filepath=out, load_ui=False)
 used = len(bpy.data.images)
 packed = sum(1 for i in bpy.data.images if i.packed_file)
-print(f"PACKAGE_OK images={used} packed={packed} objects={len(bpy.data.objects)} out={out}")
+print(f"PACKAGE_OK images={used} packed={packed} objects={len(bpy.data.objects)} actions={len(bpy.data.actions)} out={out}")

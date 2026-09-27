@@ -3,15 +3,23 @@
 export const DOWNLOAD_BYTES: Record<string, Record<string, number>> = {
   "starfighter": {
     "web_glb": 1282696,
-    "source_blend": 5356028,
+    "source_blend": 5357192,
     "textures_zip": 4778394
   },
   "tie-fighter": {
     "web_glb": 848548,
-    "source_blend": 4888270,
+    "source_blend": 4888685,
     "textures_zip": 4491612
   },
   "at-at": {
-    "source_blend": 2454839
+    "source_blend": 2451245
+  },
+  "r2-d2": {
+    "source_blend": 1859790
+  },
+  "b1-battle-droid": {
+    "web_glb": 1738664,
+    "source_blend": 35930175,
+    "textures_zip": 8705821
   }
 }

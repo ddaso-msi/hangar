@@ -8,6 +8,7 @@ export function Plate({
   className = '',
   sizes = '(min-width: 1024px) 45vw, 90vw',
   priority = false,
+  style,
 }: {
   slug: string
   name: string
@@ -15,6 +16,7 @@ export function Plate({
   className?: string
   sizes?: string
   priority?: boolean
+  style?: React.CSSProperties
 }) {
   return (
     <img
@@ -26,6 +28,7 @@ export function Plate({
       decoding="async"
       fetchPriority={priority ? 'high' : 'auto'}
       className={className}
+      style={style}
     />
   )
 }

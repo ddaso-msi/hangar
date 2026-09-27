@@ -27,42 +27,48 @@
     "aspect": 0.6875,
     "widths": [
       400,
-      800
+      800,
+      1100
     ]
   },
   "rear": {
     "aspect": 1.1538,
     "widths": [
       400,
-      800
+      800,
+      1500
     ]
   },
   "detail-knee": {
     "aspect": 1.3333,
     "widths": [
       400,
-      800
+      800,
+      1400
     ]
   },
   "detail-foot": {
     "aspect": 0.7333,
     "widths": [
       400,
-      800
+      800,
+      1100
     ]
   },
   "detail-guns": {
     "aspect": 1.3636,
     "widths": [
       400,
-      800
+      800,
+      1500
     ]
   },
   "first": {
     "aspect": 1.7778,
     "widths": [
       400,
-      800
+      800,
+      1280
     ]
   }
 }

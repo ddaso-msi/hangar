@@ -30,6 +30,8 @@ export interface Model {
   heroKind: 'live' | 'sequence'
   /** True when a scroll-scrubbable frame sequence was rendered for this model. */
   hasSequence: boolean
+  /** A looping turntable or walk video at /assets/loops/<slug>.mp4, played on card hover. */
+  hasLoop?: boolean
   dims?: string
   triCount?: number
   materials?: number
@@ -51,7 +53,7 @@ const GLB = (slug: string): DownloadOption => ({
   kind: 'web_glb',
   label: 'Web GLB',
   format: 'glb',
-  note: 'Meshopt geometry, WebP textures. Drops straight into three.js, Babylon or a game engine.',
+  note: 'The file the viewer above loads: WebP textures, lighter geometry where it was heavy. Drops straight into three.js, Babylon or Godot.',
   approxBytes: DOWNLOAD_BYTES[slug]?.web_glb ?? 0,
 })
 const SOURCE = (slug: string, textured: boolean): DownloadOption => ({
@@ -74,6 +76,7 @@ const TEXTURES = (slug: string): DownloadOption => ({
 export const MODELS: Model[] = [
   {
     slug: 'starfighter',
+    hasLoop: true,
     title: 'Starfighter',
     subtitle: 'Four-wing atmospheric interceptor',
     summary:
@@ -141,6 +144,7 @@ export const MODELS: Model[] = [
   },
   {
     slug: 'at-at',
+    hasLoop: true,
     title: 'AT-AT',
     subtitle: 'Four-legged armoured transport',
     summary:
@@ -166,6 +170,78 @@ export const MODELS: Model[] = [
     downloads: [SOURCE('at-at', false)],
     pending:
       'The AT-AT has no UV unwrap or texture bake yet, so there is no web GLB to walk around. The geometry is finished — the bake pass that the Starfighter and TIE already went through is the remaining step.',
+  },
+  {
+    slug: 'r2-d2',
+    title: 'R2-D2',
+    subtitle: 'Astromech droid',
+    summary:
+      'The whole droid lives on two surfaces: a cylinder and a flattened hemisphere. Every panel, stripe, vent and logic display is a real volume standing proud of one of them, swept from a profile or cut from the dome\'s azimuth-elevation grid. No decals, no booleans, no modifiers.',
+    heroKind: 'sequence',
+    hasSequence: false,
+    dims: '1.09 m tall × 0.467 m barrel',
+    lengthM: 1.09,
+    specs: [
+      ['Height to dome crown', '1.09 m'],
+      ['Barrel diameter', '0.467 m'],
+      ['Periscope, deployed', '+0.175 m'],
+      ['Stance', 'Tripod'],
+      ['Construction', 'Two sweep surfaces, no modifiers or booleans'],
+      ['Reference', 'R2 Builders Club figures'],
+      ['Renderer', 'Cycles'],
+    ],
+    plates: {
+      ortho: ['front', 'side', 'rear'],
+      detail: ['detail-dome', 'detail-low'],
+    },
+    hotspots: [],
+    downloads: [SOURCE('r2-d2', false)],
+    pending:
+      'R2-D2\'s materials are still procedural — clearcoat on the blue, emission on the logic displays — so there is no texture bake and no web GLB to walk around yet. The geometry is finished; the bake is the remaining step.',
+  },
+  {
+    slug: 'b1-battle-droid',
+    hasLoop: true,
+    title: 'B1 Battle Droid',
+    subtitle: 'Rigged infantry droid, 18 animation clips',
+    summary:
+      'Measured off a square-on side turnaround scaled to its 1.91 m height, by ratio. Every shell is a sweep of superellipse sections along a spine, and every limb hangs off six joint points that also place the bones, so each pivot sits exactly on its hinge. One rigidly skinned mesh, 42 bones, IK legs, and 18 clips that check themselves on every build.',
+    heroKind: 'live',
+    hasSequence: true,
+    dims: '1.92 m tall × 0.52 m shoulders',
+    triCount: 106103,
+    materials: 1,
+    specs: [
+      ['Height to crown', '1.92 m'],
+      ['Shoulders', '0.52 m'],
+      ['Skeleton', '42 deform bones, IK legs and arms'],
+      ['Animation clips', '18 — idle, march, run, stop, turns, hits, death, gestures'],
+      ['Triangles', '106,103 (web: 26,525)'],
+      ['Materials', '1 — baked'],
+      ['Texture bake', '2048 px, 4 channels'],
+      ['Walk cycle', '84 frames — march, then stop'],
+    ],
+    plates: {
+      ortho: ['front', 'side', 'top', 'rear'],
+      detail: ['detail-head', 'detail-pack', 'detail-knee'],
+    },
+    hotspots: [
+      { anchor: 'muzzle', title: 'Muzzle', body: 'The skull is twelve control points resampled to forty superellipse sections along a curved spine. It slopes about 50° and ends just above the chest front, 1.69 m up, with the vocoder slit over a lip.' },
+      { anchor: 'antenna', title: 'Antenna', body: 'The tallest point, 1.97 m. Both antennae ride the backpack, so the head alone can only turn about 24° before its rear cylinders reach them; the look-around clip turns the chest and pelvis too.' },
+      { anchor: 'backpack', title: 'Backpack', body: 'A tall thin shield in side view: a domed cap over a V bottom, 0.125 m deep, with the unit number 1138 stencilled under the dome.' },
+      { anchor: 'knee', title: 'Knee', body: 'Hinge at 0.56 m with protruding discs either side. It sits 1 cm forward of the hip–ankle line, so leg IK always bends it the right way.' },
+    ],
+    downloads: [
+      GLB('b1-battle-droid'),
+      {
+        ...SOURCE('b1-battle-droid', true),
+        note: 'The baked scene with its textures packed in, the Python scripts that generated it, and export/: the full-detail rigged FBX and GLB with all 18 clips, the procedural .blend, and a guide to the controls.',
+      },
+      {
+        ...TEXTURES('b1-battle-droid'),
+        note: '2048 px baked PBR maps — base colour, normal, roughness, metallic — for use outside Blender.',
+      },
+    ],
   },
 ]
 
