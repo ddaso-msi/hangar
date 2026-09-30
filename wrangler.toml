@@ -14,9 +14,9 @@ migrations_dir = "migrations"
 binding = "FILES"
 bucket_name = "hangar-assets"
 
+# SIGNING_KEY is a secret, never a var: `wrangler pages secret put SIGNING_KEY`.
+# Local dev reads it from .dev.vars (gitignored).
 [vars]
-ENVIRONMENT = "development"
+ENVIRONMENT = "production"
 DOWNLOAD_TTL_SECONDS = "300"
 REQUIRE_EMAIL = "false"
-
-SIGNING_KEY = "dev-only-change-me-in-production"

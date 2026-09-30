@@ -1,5 +1,5 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
-import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import { Canvas, createPortal, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls, useGLTF, useAnimations, Html, AdaptiveDpr, Stars, Environment, Lightformer } from '@react-three/drei'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import { SkeletonUtils } from 'three-stdlib'
@@ -129,13 +129,24 @@ const clipLabel = (name: string) =>
     .replace(/([a-z])([A-Z0-9])/g, '$1 $2')
     .replace(/([0-9])([A-Z])/g, '$1 $2')
 
+interface PlacedSpot {
+  spot: Hotspot
+  /** Rest-pose position, in the inspector's centred frame. */
+  at: [number, number, number]
+  /** For a rigged model, the bone the anchor belongs to (as named in the GLB). */
+  bone?: string
+}
+
 function Model({
   url,
   wireframe,
   explode,
   centre,
   clip,
+  loopClip,
   onClips,
+  spots,
+  showSpots,
 }: {
   url: string
   wireframe: boolean
@@ -143,7 +154,11 @@ function Model({
   /** Measured by scripts/anchors.mjs. Anchors and hull are relative to this same point. */
   centre?: [number, number, number]
   clip: string | null
+  /** Loop the clip even if it is a one-shot (the autoplayed showcase clip). */
+  loopClip: boolean
   onClips: (names: string[]) => void
+  spots: PlacedSpot[]
+  showSpots: boolean
 }) {
   const { scene, animations } = useGLTF(url, false, true)
   const root = useRef<THREE.Group>(null)
@@ -185,12 +200,24 @@ function Model({
     }
     const action = actions[clip]
     if (!action) return
-    const loop = LOOPING.test(clip)
+    const loop = loopClip || LOOPING.test(clip)
     action.reset()
     action.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, loop ? Infinity : 1)
     action.clampWhenFinished = !loop
     action.fadeIn(0.15).play()
-  }, [clip, actions, mixer, centred])
+  }, [clip, loopClip, actions, mixer, centred])
+
+  // Each hotspot is placed once, in the rest pose. On a rigged model it is then
+  // re-expressed in its bone's local frame and mounted inside that bone, so the
+  // skeleton carries it: the marker stays on the dome as the dome turns.
+  const placed = useMemo(() => {
+    centred.updateMatrixWorld(true)
+    return spots.map((s) => {
+      const bone = s.bone ? centred.getObjectByName(THREE.PropertyBinding.sanitizeNodeName(s.bone)) : undefined
+      const world = new THREE.Vector3(...s.at)
+      return bone ? { ...s, parent: bone, local: bone.worldToLocal(world.clone()) } : { ...s, parent: undefined, local: world }
+    })
+  }, [centred, spots])
 
   useEffect(() => {
     centred.traverse((o) => {
@@ -221,6 +248,11 @@ function Model({
   return (
     <group ref={root}>
       <primitive object={centred} />
+      {showSpots &&
+        placed.map((p, i) => {
+          const marker = <Marker key={p.spot.anchor} spot={p.spot} position={p.local.toArray() as [number, number, number]} index={i} />
+          return p.parent ? createPortal(marker, p.parent) : marker
+        })}
     </group>
   )
 }
@@ -269,10 +301,10 @@ function Reflections({ light, backdrop }: { light: boolean; backdrop: string }) 
   )
 }
 
-function Marker({ spot, at, index }: { spot: Hotspot; at: [number, number, number]; index: number }) {
+function Marker({ spot, position, index }: { spot: Hotspot; position: [number, number, number]; index: number }) {
   const [open, setOpen] = useState(false)
   return (
-    <group position={at}>
+    <group position={position}>
       <Html center zIndexRange={[20, 0]}>
         <div className="relative">
           <button
@@ -317,9 +349,17 @@ interface Props {
    * sequence above it is trying to scrub smoothly.
    */
   active?: boolean
+  /**
+   * A clip to start on its own, looping, once the model is fully revealed. A
+   * rigged model that just stands there reads as broken, and a dropdown in the
+   * corner is easy to miss. Never before the reveal (the seam needs the rest
+   * pose), never with reduced motion, and never once the viewer has chosen.
+   */
+  showcase?: string
+  revealed?: boolean
 }
 
-export function Inspector({ slug, hotspots, lengthM, className = 'relative', onReady, active = true }: Props) {
+export function Inspector({ slug, hotspots, lengthM, className = 'relative', onReady, active = true, showcase, revealed = false }: Props) {
   const seam = SEAMS[slug]
   const measured = ANCHORS[slug]
   const size = measured?.size ?? [10, 5, 10]
@@ -335,6 +375,15 @@ export function Inspector({ slug, hotspots, lengthM, className = 'relative', onR
   const [showSpots, setShowSpots] = useState(true)
   const [clips, setClips] = useState<string[]>([])
   const [clip, setClip] = useState<string | null>(null)
+  const picked = useRef(false)
+  const autoplaying = clip !== null && clip === showcase && !picked.current
+
+  useEffect(() => {
+    if (!revealed || !showcase || picked.current || clip !== null) return
+    if (!clips.includes(showcase)) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    setClip(showcase)
+  }, [revealed, showcase, clips, clip])
   // Exploding pulls apart separate meshes; a single skinned mesh has none.
   const canExplode = (measured?.parts ?? 2) > 1
   const controls = useRef<OrbitControlsImpl>(null)
@@ -361,6 +410,12 @@ export function Inspector({ slug, hotspots, lengthM, className = 'relative', onR
   }
 
   const spots = hotspots.filter((h) => measured?.anchors[h.anchor])
+  // Stable across renders: markers are placed once, in the rest pose.
+  const placedSpots = useMemo<PlacedSpot[]>(
+    () => spots.map((s) => ({ spot: s, at: measured!.anchors[s.anchor], bone: measured?.anchorBones?.[s.anchor] })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [slug, hotspots]
+  )
 
   return (
     <div className={className} style={{ background: gradient ?? backdrop }}>
@@ -397,13 +452,13 @@ export function Inspector({ slug, hotspots, lengthM, className = 'relative', onR
             explode={exploded && canExplode ? r * 0.18 : 0}
             centre={measured?.centre}
             clip={clip}
+            loopClip={autoplaying}
             onClips={setClips}
+            spots={placedSpots}
+            showSpots={showSpots}
           />
           {/* Inside the same Suspense boundary: it cannot run until the GLB has resolved. */}
           <ReadySignal onReady={onReady} />
-          {/* Anchors are measured in the rest pose; a playing clip moves the parts away from them. */}
-          {showSpots && !clip &&
-            spots.map((s, i) => <Marker key={s.anchor} spot={s} at={measured!.anchors[s.anchor]} index={i} />)}
         </Suspense>
         <OrbitControls
           ref={controls}
@@ -440,7 +495,11 @@ export function Inspector({ slug, hotspots, lengthM, className = 'relative', onR
               <span className="sr-only">Animation</span>
               <select
                 value={clip ?? ''}
-                onChange={(e) => setClip(e.target.value || null)}
+                onChange={(e) => {
+                  // The viewer has chosen: the showcase never takes over again.
+                  picked.current = true
+                  setClip(e.target.value || null)
+                }}
                 className={`appearance-none rounded-full border py-1.5 pl-3 pr-7 font-mono text-[11px] uppercase tracking-[0.14em] outline-none transition ${
                   clip ? 'border-ember bg-ember/15 text-ember' : 'border-edge bg-hull/80 text-dim backdrop-blur hover:border-faint hover:text-ink'
                 }`}
@@ -455,7 +514,7 @@ export function Inspector({ slug, hotspots, lengthM, className = 'relative', onR
               <span aria-hidden="true" className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] text-faint">▾</span>
             </label>
           )}
-          {spots.length > 0 && !clip && <Toggle on={showSpots} onClick={() => setShowSpots((v) => !v)}>Hotspots</Toggle>}
+          {spots.length > 0 && <Toggle on={showSpots} onClick={() => setShowSpots((v) => !v)}>Hotspots</Toggle>}
           <Toggle on={wireframe} onClick={() => setWireframe((v) => !v)}>Wireframe</Toggle>
           {canExplode && <Toggle on={exploded} onClick={() => setExploded((v) => !v)}>Exploded</Toggle>}
           {coarse && held && <Toggle on onClick={() => setHeld(false)}>Done</Toggle>}

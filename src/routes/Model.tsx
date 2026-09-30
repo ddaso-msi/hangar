@@ -108,6 +108,8 @@ function LiveStage({ model }: { model: ModelType }) {
   const [mounted, setMounted] = useState(false)
   const [ready, setReady] = useState(false)
   const [active, setActive] = useState(false)
+  // True once the still has fully given way to the live model.
+  const [revealed, setRevealed] = useState(false)
   // No WebGL, or the viewer failed: the stage still scrubs and holds the final
   // frame -- it simply never dissolves -- and says why.
   const [noViewer, setNoViewer] = useState(() => !hasWebGL())
@@ -138,6 +140,7 @@ function LiveStage({ model }: { model: ModelType }) {
 
   const onProgress = (p: number) => {
     if (!mounted && !noViewer && p > 0.05) setMounted(true)
+    if (!revealed && ready && p >= t.dissolve[1]) setRevealed(true)
     const shouldRun = p >= t.dissolve[0] - 0.03
     if (shouldRun !== activeRef.current) {
       activeRef.current = shouldRun
@@ -174,6 +177,8 @@ function LiveStage({ model }: { model: ModelType }) {
                 className="absolute inset-0 h-full w-full"
                 onReady={() => setReady(true)}
                 active={active}
+                showcase={model.showcase}
+                revealed={revealed}
               />
             </Suspense>
           </ErrorBoundary>

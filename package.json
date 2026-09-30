@@ -15,7 +15,9 @@
     "assets:posters": "node scripts/make-posters.mjs",
     "assets:all": "npm run assets:glb && npm run assets:seq && npm run assets:posters",
     "lint": "eslint .",
-    "typecheck": "tsc -b && tsc -p functions"
+    "typecheck": "tsc -b && tsc -p functions",
+    "deploy": "npm run build && wrangler pages deploy dist --project-name hangar",
+    "check:rigs": "node scripts/check-rigs.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",

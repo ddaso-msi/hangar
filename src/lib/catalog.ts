@@ -32,6 +32,8 @@ export interface Model {
   hasSequence: boolean
   /** A looping turntable or walk video at /assets/loops/<slug>.mp4, played on card hover. */
   hasLoop?: boolean
+  /** For a rigged model: the clip that starts on its own, looping, once the model is revealed. */
+  showcase?: string
   dims?: string
   triCount?: number
   materials?: number
@@ -173,6 +175,7 @@ export const MODELS: Model[] = [
   },
   {
     slug: 'r2-d2',
+    showcase: 'R2_LookAround',
     title: 'R2-D2',
     subtitle: 'Astromech droid, 3 animation clips',
     summary:
@@ -213,6 +216,7 @@ export const MODELS: Model[] = [
   },
   {
     slug: 'b1-battle-droid',
+    showcase: 'B1_Idle',
     hasLoop: true,
     title: 'B1 Battle Droid',
     subtitle: 'Rigged infantry droid, 18 animation clips',

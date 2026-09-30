@@ -192,10 +192,23 @@ export async function measureAnchors(slug, glbPath) {
   const scene = bbox(Object.values(groups).flat())
   const round = (v) => +v.toFixed(3)
   const anchors = {}
+  // For a rigged model, the bone each anchor rides on: the bone of the nearest
+  // vertex. The inspector parents the hotspot to that bone, so the marker stays
+  // on its part while a clip plays instead of floating where the part used to be.
+  const anchorBones = {}
   for (const [key, rule] of Object.entries(rules)) {
     // Material rules take the groups; bone rules destructure { bones }.
     const p = rule(Object.assign(Object.create(groups), { bones: measured.bones, joints: measured.joints }))
     anchors[key] = p.map((v, k) => round(v - scene.c[k]))
+    if (measured.skinned) {
+      let best = Infinity
+      for (const [bone, pts] of Object.entries(measured.bones)) {
+        for (const q of pts) {
+          const d = (q[0] - p[0]) ** 2 + (q[1] - p[1]) ** 2 + (q[2] - p[2]) ** 2
+          if (d < best) { best = d; anchorBones[key] = bone }
+        }
+      }
+    }
   }
   const all = Object.values(groups).flat()
   const hull = supportPoints(all).map((p) => p.map((v, k) => round(v - scene.c[k])))
@@ -208,6 +221,7 @@ export async function measureAnchors(slug, glbPath) {
     centre: scene.c.map(round),
     parts: measured.parts,
     skinned: measured.skinned,
+    anchorBones,
     materials: Object.keys(groups),
   }
 }
