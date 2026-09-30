@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { bySlug, plateSrc } from '../lib/catalog'
-import { PLATE_ASPECT, POSTER_BACKDROP } from '../lib/plates.generated'
+import { PLATE_ASPECT, POSTER_BACKDROP, SEAMS } from '../lib/plates.generated'
 import type { Model as ModelType } from '../lib/catalog'
 import { FrameSequence } from '../scroll/FrameSequence'
 import { Plate } from '../ui/Plate'
@@ -21,7 +21,7 @@ const PLATE_LABEL: Record<string, string> = {
   'detail-cockpit': 'Canopy', 'detail-exhaust': 'Exhaust', 'detail-intake': 'Intake',
   'detail-hub': 'Hub', 'detail-window': 'Viewport', 'detail-panel': 'Wing panel',
   'detail-knee': 'Knee joint', 'detail-foot': 'Footpad', 'detail-guns': 'Chin guns',
-  'detail-dome': 'Dome', 'detail-low': 'Low angle',
+  'detail-dome': 'Dome', 'detail-low': 'Low angle', 'detail-shoulder': 'Shoulder hub', 'detail-vents': 'Vents',
 }
 
 /** Column classes for a plate grid, so three plates make one row rather than a row and an orphan. */
@@ -159,6 +159,9 @@ function LiveStage({ model }: { model: ModelType }) {
       scrubEnd={t.scrubEnd}
       dissolve={t.dissolve}
       underlayReady={ready}
+      fit={SEAMS[model.slug]?.fit}
+      backdrop={SEAMS[model.slug]?.gradient ? `linear-gradient(to bottom, ${SEAMS[model.slug]!.gradient!.join(', ')})` : undefined}
+      scrimOut={t.titleOut as [number, number]}
       onProgress={onProgress}
       underlay={
         mounted && !noViewer && (
@@ -184,7 +187,8 @@ function LiveStage({ model }: { model: ModelType }) {
         <p
           ref={note}
           style={{ opacity: 0 }}
-          className="pointer-events-none absolute inset-x-0 bottom-10 mx-auto max-w-md px-5 text-center font-mono text-[11px] leading-relaxed text-dim"
+          // Its own dark backing: on a light studio floor the stage gives no contrast.
+          className="pointer-events-none absolute inset-x-0 bottom-10 mx-auto w-fit max-w-[min(28rem,calc(100%-2.5rem))] rounded-lg bg-void/75 px-4 py-2.5 text-center font-mono text-[11px] leading-relaxed text-dim backdrop-blur"
         >
           This browser can't run the 3D viewer, so the model stays as a render. The views and
           downloads below all still work.

@@ -152,6 +152,16 @@ const RULES = {
     // Outer face of the right knee disc: the furthest -X point at knee height.
     knee: (g) => argmax(g.B1.filter((p) => Math.abs(p[Y] - 0.56) < 0.05), (p) => -p[X]),
   },
+  // Rigid 7-bone rig. glTF axes: front +X, up +Y; .L is the droid's left (-Z),
+  // so .R (+Z) is the side the hero camera looks at.
+  'r2-d2': {
+    // Crown of the dome, which turns on its own bone.
+    dome: ({ bones }) => { const b = bbox(bones.dome); return [b.c[X], b.hi[Y], b.c[Z]] },
+    // Right shoulder hub: top of the right leg, on its outer face.
+    shoulder: ({ bones }) => { const b = bbox(bones['leg.R']); return [b.c[X], b.hi[Y] - b.size[Y] * 0.06, b.hi[Z]] },
+    // Toe of the centre foot, which reaches forward of the barrel axis.
+    centre: ({ bones }) => { const b = bbox(bones['leg.C']); return [b.hi[X], b.lo[Y] + b.size[Y] * 0.15, b.c[Z]] },
+  },
 }
 
 /**

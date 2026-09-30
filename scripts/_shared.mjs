@@ -95,19 +95,55 @@ export const MODELS = [
   {
     slug: 'r2-d2',
     project: 'R2-D2',
-    // Procedural materials (clearcoat, emissive LEDs), no bake yet: no GLB, no texture set.
-    source: { blend: 'scenes/r2d2.blend', include: ['scripts', 'README.md'] },
+    // Rigged (7 bones, 3 clips). No bake and none needed: every material is a
+    // Principled BSDF with constant inputs, which glTF carries one to one.
+    source: {
+      blend: 'scenes/r2d2.blend',
+      include: ['scripts', 'README.md'],
+      clips: 3,
+      // The committed FBX records the source .blend's absolute path; rebuild it
+      // with the author's export script from a neutral path. r2d2_verify.py takes
+      // the asset root and reads <root>/export, so the export goes there.
+      exports: {
+        script: 'scripts/r2d2_export.py',
+        scene: 'scenes/r2d2.blend',
+        verify: 'scripts/r2d2_verify.py',
+        verifyRoot: true,
+        stage: ['scenes', 'scripts'],
+        files: ['r2d2.fbx', 'r2d2.glb'],
+      },
+    },
     textures: null,
-    glb: null,
+    glb: 'export/r2d2.glb',
+    // 145k tris of smooth sweeps, all geometry. 0.45 keeps the dome and barrel
+    // round at 1.6 MB; the rig survives it (0 cross-bone triangles).
+    web: { simplify: 0.45, quantize: true },
     frames: null,
     poster: 'renders/r2d2.png',
     loop: null,
-    seam: null,
+    // No flythrough, so the seam is the hero render itself. It is portrait, so it
+    // is shown at full viewport height (fit: 'height') rather than cropped, and
+    // the inspector opens on the hero camera exactly as r2d2_views.py placed it
+    // (Blender coordinates, converted to glTF by make-posters.mjs).
+    seam: {
+      still: 'renders/r2d2.png',
+      view: [2.35, 0.42, 1.8],
+      camera: { position: [2.35, -1.8, 1.0], target: [0, 0, 0.58], lens: 85, sensor: 36 },
+      fit: 'height',
+      // A lit studio, not space: the mid-grey backdrop would otherwise read as dark.
+      lighting: 'studio',
+      band: [0.03, 0.97],
+      stars: false,
+      contrast: 60,
+    },
     stills: [
       ['front', 'renders/r2d2_front.png'],
       ['side', 'renders/r2d2_side.png'],
       ['rear', 'renders/r2d2_rear.png'],
+      ['top', 'renders/r2d2_top.png'],
       ['detail-dome', 'renders/r2d2_dome.png'],
+      ['detail-shoulder', 'renders/r2d2_shoulder.png'],
+      ['detail-vents', 'renders/r2d2_vents.png'],
       ['detail-low', 'renders/r2d2_low.png'],
     ],
   },

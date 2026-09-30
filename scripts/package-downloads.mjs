@@ -80,15 +80,18 @@ function scrubStage(dir) {
 function rebuildExports(base, spec) {
   const root = '/tmp/hangar-export-src'
   const src = join(root, 'asset')
-  const out = '/tmp/hangar-export'
+  // Some verifiers take the export folder; others (verifyRoot) take the asset
+  // root and read <root>/export themselves, so the export must land there.
+  const out = spec.verifyRoot ? join(src, 'export') : '/tmp/hangar-export'
   rmSync(root, { recursive: true, force: true })
-  rmSync(out, { recursive: true, force: true })
+  rmSync('/tmp/hangar-export', { recursive: true, force: true })
   mkdirSync(src, { recursive: true })
   mkdirSync(out, { recursive: true })
   for (const d of spec.stage) execFileSync('rsync', ['-a', join(base, d), src + '/'])
   execFileSync(BLENDER, ['--background', '--factory-startup', spec.scene, '--python', spec.script, '--', out], { cwd: src, stdio: ['ignore', 'ignore', 'pipe'] })
   if (spec.verify) {
-    const log = execFileSync(BLENDER, ['--background', '--factory-startup', '--python', join(src, spec.verify), '--', out], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
+    const arg = spec.verifyRoot ? src : out
+    const log = execFileSync(BLENDER, ['--background', '--factory-startup', '--python', join(src, spec.verify), '--', arg], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
     if (!/VERIFY RESULT: PASS/.test(log)) throw new Error(`Author's verifier failed on the rebuilt exports:\n${log.slice(-1500)}`)
   }
   return { out, cleanup: () => { rmSync(root, { recursive: true, force: true }); rmSync(out, { recursive: true, force: true }) } }

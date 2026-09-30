@@ -31,7 +31,31 @@
       1200
     ]
   },
+  "top": {
+    "aspect": 1.1538,
+    "widths": [
+      400,
+      800,
+      1500
+    ]
+  },
   "detail-dome": {
+    "aspect": 1.25,
+    "widths": [
+      400,
+      800,
+      1500
+    ]
+  },
+  "detail-shoulder": {
+    "aspect": 1.25,
+    "widths": [
+      400,
+      800,
+      1500
+    ]
+  },
+  "detail-vents": {
     "aspect": 1.25,
     "widths": [
       400,
@@ -41,6 +65,14 @@
   },
   "detail-low": {
     "aspect": 0.875,
+    "widths": [
+      400,
+      800,
+      1400
+    ]
+  },
+  "seam": {
+    "aspect": 0.8,
     "widths": [
       400,
       800,

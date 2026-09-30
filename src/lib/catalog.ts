@@ -174,30 +174,42 @@ export const MODELS: Model[] = [
   {
     slug: 'r2-d2',
     title: 'R2-D2',
-    subtitle: 'Astromech droid',
+    subtitle: 'Astromech droid, 3 animation clips',
     summary:
       'The whole droid lives on two surfaces: a cylinder and a flattened hemisphere. Every panel, stripe, vent and logic display is a real volume standing proud of one of them, swept from a profile or cut from the dome\'s azimuth-elevation grid. No decals, no booleans, no modifiers.',
-    heroKind: 'sequence',
+    heroKind: 'live',
     hasSequence: false,
     dims: '1.09 m tall × 0.467 m barrel',
-    lengthM: 1.09,
+    triCount: 145314,
+    materials: 12,
     specs: [
       ['Height to dome crown', '1.09 m'],
       ['Barrel diameter', '0.467 m'],
       ['Periscope, deployed', '+0.175 m'],
       ['Stance', 'Tripod'],
+      ['Skeleton', '7 bones — root, sway, body, dome, three legs'],
+      ['Animation clips', '3 — look around, roll, rolling loop'],
+      ['Triangles', '145,314 (web: 65,579)'],
+      ['Materials', '12 — constant Principled inputs, no textures'],
       ['Construction', 'Two sweep surfaces, no modifiers or booleans'],
       ['Reference', 'R2 Builders Club figures'],
-      ['Renderer', 'Cycles'],
     ],
     plates: {
-      ortho: ['front', 'side', 'rear'],
-      detail: ['detail-dome', 'detail-low'],
+      ortho: ['front', 'side', 'rear', 'top'],
+      detail: ['detail-dome', 'detail-shoulder', 'detail-vents', 'detail-low'],
     },
-    hotspots: [],
-    downloads: [SOURCE('r2-d2', false)],
-    pending:
-      'R2-D2\'s materials are still procedural — clearcoat on the blue, emission on the logic displays — so there is no texture bake and no web GLB to walk around yet. The geometry is finished; the bake is the remaining step.',
+    hotspots: [
+      { anchor: 'dome', title: 'Dome', body: 'A flattened hemisphere — its rise is 0.93 of the barrel radius, not a half-ball. It turns on its own bone, so the look-around clip can be layered over either roll in an engine.' },
+      { anchor: 'shoulder', title: 'Shoulder hub', body: 'Sits 1.25 barrel radii off the axis, on the outer face of the leg. Built at the hub station instead, the disc ends up buried inside the leg and the blue ring never shows.' },
+      { anchor: 'centre', title: 'Centre foot', body: 'Reaches 0.91 barrel radii forward of the axis. It hangs off the body bone rather than the root, because it retracts into the body — and braking out of a roll, R2 tips forward onto it.' },
+    ],
+    downloads: [
+      GLB('r2-d2'),
+      {
+        ...SOURCE('r2-d2', false),
+        note: 'The rigged scene with all three clips, the Python scripts that built it, and export/: the full-detail GLB and FBX. No textures needed — every material is a plain Principled BSDF.',
+      },
+    ],
   },
   {
     slug: 'b1-battle-droid',

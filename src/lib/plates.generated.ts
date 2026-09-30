@@ -167,12 +167,32 @@ export const PLATE_WIDTHS: Record<string, Record<string, number[]>> = {
       800,
       1200
     ],
+    "top": [
+      400,
+      800,
+      1500
+    ],
     "detail-dome": [
       400,
       800,
       1500
     ],
+    "detail-shoulder": [
+      400,
+      800,
+      1500
+    ],
+    "detail-vents": [
+      400,
+      800,
+      1500
+    ],
     "detail-low": [
+      400,
+      800,
+      1400
+    ],
+    "seam": [
       400,
       800,
       1400
@@ -272,8 +292,12 @@ export const PLATE_ASPECT: Record<string, Record<string, number>> = {
     "front": 0.7059,
     "side": 0.7059,
     "rear": 0.7059,
+    "top": 1.1538,
     "detail-dome": 1.25,
-    "detail-low": 0.875
+    "detail-shoulder": 1.25,
+    "detail-vents": 1.25,
+    "detail-low": 0.875,
+    "seam": 0.8
   },
   "b1-battle-droid": {
     "poster": 0.7778,
@@ -298,7 +322,18 @@ export const POSTER_BACKDROP: Record<string, string> = {
   "b1-battle-droid": "#010101"
 }
 
-export interface SeamSpec { view: [number, number, number]; stars: boolean; aspect: number; fill: number; backdrop: string }
+export interface SeamCamera { position: [number, number, number]; target: [number, number, number]; vfov: number }
+export interface SeamSpec {
+  view: [number, number, number]; stars: boolean; aspect: number; fill: number; backdrop: string
+  /** 'cover' crops the still to fill the screen; 'height' shows it at full viewport height. */
+  fit: 'cover' | 'height'
+  /** The render camera, in glTF axes. When present the inspector opens on it exactly. */
+  camera?: SeamCamera
+  /** Top-to-bottom backdrop colours, for 'height' seams. */
+  gradient?: string[]
+  /** Overrides the light rig otherwise inferred from the backdrop's brightness. */
+  lighting?: 'studio' | 'space'
+}
 export const SEAMS: Record<string, SeamSpec> = {
   "starfighter": {
     "view": [
@@ -307,6 +342,7 @@ export const SEAMS: Record<string, SeamSpec> = {
       0.28
     ],
     "stars": true,
+    "fit": "cover",
     "aspect": 0.5625,
     "fill": 0.4583,
     "backdrop": "#091426"
@@ -318,9 +354,86 @@ export const SEAMS: Record<string, SeamSpec> = {
       0
     ],
     "stars": false,
+    "fit": "cover",
     "aspect": 0.9569,
     "fill": 0.375,
     "backdrop": "#bdbebf"
+  },
+  "r2-d2": {
+    "view": [
+      2.35,
+      0.42,
+      1.8
+    ],
+    "stars": false,
+    "fit": "height",
+    "aspect": 0.8,
+    "fill": 0.9993,
+    "backdrop": "#73777e",
+    "lighting": "studio",
+    "camera": {
+      "position": [
+        2.35,
+        1,
+        1.8
+      ],
+      "target": [
+        0,
+        0.58,
+        0
+      ],
+      "vfov": 23.913
+    },
+    "gradient": [
+      "#595d63",
+      "#595d63",
+      "#595d63",
+      "#595d63",
+      "#595d63",
+      "#595d63",
+      "#595d63",
+      "#595d63",
+      "#595d63",
+      "#393c41",
+      "#202225",
+      "#1f2125",
+      "#1f2125",
+      "#1f2125",
+      "#1f2125",
+      "#1f2225",
+      "#202225",
+      "#212326",
+      "#222427",
+      "#232528",
+      "#242629",
+      "#25272b",
+      "#27292c",
+      "#292b2e",
+      "#2b2d30",
+      "#2e3033",
+      "#36393e",
+      "#50565f",
+      "#69717b",
+      "#707782",
+      "#737a84",
+      "#757c85",
+      "#757c86",
+      "#767d87",
+      "#777d87",
+      "#797f89",
+      "#7c838c",
+      "#7f868e",
+      "#828891",
+      "#848a93",
+      "#878c94",
+      "#898e96",
+      "#8a9097",
+      "#8b9097",
+      "#8b9097",
+      "#8c9097",
+      "#8d9198",
+      "#8d9298"
+    ]
   },
   "b1-battle-droid": {
     "view": [
@@ -329,6 +442,7 @@ export const SEAMS: Record<string, SeamSpec> = {
       4.15
     ],
     "stars": false,
+    "fit": "cover",
     "aspect": 1.7778,
     "fill": 0.1203,
     "backdrop": "#010101"

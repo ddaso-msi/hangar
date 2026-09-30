@@ -52,27 +52,57 @@ function openingDistance(seam: SeamSpec, hull: [number, number, number][], W: nu
   return { dir, distance: (near + far) / 2 }
 }
 
-function Rig({ seam, size, hull, touched }: { seam: SeamSpec; size: [number, number, number]; hull: [number, number, number][]; touched: React.RefObject<boolean> }) {
-  const camera = useThree((s) => s.camera)
+function Rig({
+  seam,
+  size,
+  hull,
+  centre,
+  touched,
+}: {
+  seam: SeamSpec
+  size: [number, number, number]
+  hull: [number, number, number][]
+  centre?: [number, number, number]
+  touched: React.RefObject<boolean>
+}) {
+  const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera
   const { width, height } = useThree((s) => s.size)
   const controls = useThree((s) => s.controls) as OrbitControlsImpl | null
 
   useEffect(() => {
     // Once the viewer has orbited, a resize must not yank the camera back.
     if (touched.current || !width || !height) return
-    const { dir, distance } = openingDistance(seam, hull, width, height)
-    camera.position.copy(dir).multiplyScalar(distance)
-    camera.lookAt(0, 0, 0)
     const r = Math.hypot(...size) / 2
+    const target = new THREE.Vector3()
+    let distance: number
+
+    if (seam.camera) {
+      // The seam still's own render camera, reproduced exactly. The still is
+      // shown at full viewport height, so matching its vertical field of view
+      // makes every screen row line up with the render's rows. Positions are in
+      // the GLB's frame; the model is drawn shifted by its measured centre.
+      const c = new THREE.Vector3(...(centre ?? [0, 0, 0]))
+      camera.fov = seam.camera.vfov
+      camera.position.set(...seam.camera.position).sub(c)
+      target.set(...seam.camera.target).sub(c)
+      distance = camera.position.distanceTo(target)
+    } else {
+      const solved = openingDistance(seam, hull, width, height)
+      camera.fov = FOV
+      camera.position.copy(solved.dir).multiplyScalar(solved.distance)
+      distance = solved.distance
+    }
+
+    camera.lookAt(target)
     camera.near = r / 100
     camera.far = distance + r * 40
     camera.updateProjectionMatrix()
     if (controls) {
-      controls.target.set(0, 0, 0)
+      controls.target.copy(target)
       controls.maxDistance = Math.max(r * 7, distance * 1.6)
       controls.update()
     }
-  }, [camera, controls, seam, size, hull, width, height, touched])
+  }, [camera, controls, seam, size, hull, centre, width, height, touched])
   return null
 }
 
@@ -89,7 +119,7 @@ function ReadySignal({ onReady }: { onReady?: () => void }) {
 }
 
 /** Clips that loop; everything else plays once and holds its last frame. */
-const LOOPING = /(^|_)(Idle|March|Run)$/
+const LOOPING = /(^|_)(Idle|March|Run)$|Loop$/
 
 /** "B1_Turn90_L" -> "Turn 90 L", "B1_RogerRoger" -> "Roger Roger". */
 const clipLabel = (name: string) =>
@@ -294,8 +324,11 @@ export function Inspector({ slug, hotspots, lengthM, className = 'relative', onR
   const measured = ANCHORS[slug]
   const size = measured?.size ?? [10, 5, 10]
   const r = Math.hypot(...size) / 2
-  const light = isLight(seam?.backdrop ?? '#080A0F')
+  const light = seam?.lighting ? seam.lighting === 'studio' : isLight(seam?.backdrop ?? '#080A0F')
   const backdrop = seam?.backdrop ?? '#080A0F'
+  // A studio backdrop measured row by row: the canvas is transparent over it, so
+  // the wall and floor bands of the seam still carry straight on behind the model.
+  const gradient = seam?.gradient ? `linear-gradient(to bottom, ${seam.gradient.join(', ')})` : null
 
   const [wireframe, setWireframe] = useState(false)
   const [exploded, setExploded] = useState(false)
@@ -330,23 +363,29 @@ export function Inspector({ slug, hotspots, lengthM, className = 'relative', onR
   const spots = hotspots.filter((h) => measured?.anchors[h.anchor])
 
   return (
-    <div className={className} style={{ background: backdrop }}>
+    <div className={className} style={{ background: gradient ?? backdrop }}>
       <Canvas
         frameloop={active ? 'always' : 'demand'}
         shadows
         style={{ touchAction: live ? 'none' : 'pan-y', pointerEvents: live ? 'auto' : 'none' }}
         dpr={[1, 2]}
-        gl={{ antialias: true, powerPreference: 'high-performance' }}
+        gl={{ antialias: true, powerPreference: 'high-performance', alpha: !!gradient }}
         camera={{ fov: FOV }}
         onCreated={({ gl, scene }) => {
           gl.toneMapping = THREE.ACESFilmicToneMapping
           gl.toneMappingExposure = light ? 0.95 : 1.05
-          scene.background = new THREE.Color(backdrop)
-          scene.fog = new THREE.Fog(backdrop, r * 8, r * 30)
+          if (gradient) {
+            // Transparent: the measured gradient behind the canvas is the backdrop.
+            // No fog either -- fog would pull the model toward one flat colour.
+            gl.setClearColor(0x000000, 0)
+          } else {
+            scene.background = new THREE.Color(backdrop)
+            scene.fog = new THREE.Fog(backdrop, r * 8, r * 30)
+          }
         }}
       >
         <AdaptiveDpr pixelated />
-        {seam && measured && <Rig seam={seam} size={size} hull={measured.hull} touched={touched} />}
+        {seam && measured && <Rig seam={seam} size={size} hull={measured.hull} centre={measured.centre} touched={touched} />}
         <Lights r={r} light={light} />
         <Reflections light={light} backdrop={backdrop} />
         {/* The flythrough ends in a starfield; so does the canvas, or the dissolve shows. */}

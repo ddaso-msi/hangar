@@ -53,6 +53,20 @@ interface Props {
   dissolve?: [number, number]
   /** Hold the image layer opaque until the underlay reports it has drawn. */
   underlayReady?: boolean
+  /**
+   * 'cover' crops the still to fill the screen. 'height' shows it at full
+   * viewport height, centred, so a portrait still is never cut off -- the side
+   * bars take `backdrop`. The inspector reproduces whichever framing is shown.
+   */
+  fit?: 'cover' | 'height'
+  /** CSS background for the stage: what the side bars of a 'height' still show. */
+  backdrop?: string
+  /**
+   * When the title fades (a progress range), the legibility scrim goes with it,
+   * so the still reaches the dissolve exactly as rendered -- otherwise the lower
+   * screen would visibly brighten as the scrimmed still gives way to the canvas.
+   */
+  scrimOut?: [number, number]
   onProgress?: (p: number) => void
   className?: string
   children?: React.ReactNode
@@ -67,12 +81,16 @@ export function FrameSequence({
   underlay,
   dissolve,
   underlayReady = true,
+  fit = 'cover',
+  backdrop,
+  scrimOut,
   onProgress,
   className = '',
   children,
 }: Props) {
   const section = useRef<HTMLDivElement>(null)
   const layer = useRef<HTMLDivElement>(null)
+  const scrim = useRef<HTMLDivElement>(null)
   const canvas = useRef<HTMLCanvasElement>(null)
   const frames = useRef<HTMLImageElement[]>([])
   const drawn = useRef(-1)
@@ -176,6 +194,10 @@ export function FrameSequence({
       // Once it has faded, the image layer must stop swallowing drags meant for the underlay.
       layer.current.style.pointerEvents = t > 0.95 ? 'none' : ''
     }
+    if (scrimOut && scrim.current) {
+      const [a, b] = scrimOut
+      scrim.current.style.opacity = String(1 - clamp01((p - a) / (b - a)))
+    }
   }
 
   paintRef.current = paint
@@ -221,12 +243,18 @@ export function FrameSequence({
 
         {/* z-30 sits above the underlay's HTML overlays (hotspot markers use z 0-20),
             so nothing belonging to the live model shows through the still. */}
-        <div ref={layer} className="absolute inset-0 z-30">
+        <div ref={layer} className="absolute inset-0 z-30" style={backdrop ? { background: backdrop } : undefined}>
           <img
             src={plateSrc(slug, poster, 1600)}
             alt=""
             aria-hidden="true"
-            className="absolute inset-0 h-full w-full object-cover"
+            className={
+              fit === 'height'
+                ? // Full viewport height, centred; on a phone the sides crop, on a
+                  // wide screen the sides are feathered into the stage backdrop.
+                  'absolute left-1/2 top-0 h-full w-auto max-w-none -translate-x-1/2 [mask-image:linear-gradient(to_right,transparent,black_7%,black_93%,transparent)]'
+                : 'absolute inset-0 h-full w-full object-cover'
+            }
             fetchPriority="high"
           />
           {scrub && (
@@ -236,7 +264,7 @@ export function FrameSequence({
               style={{ opacity: primed ? 1 : 0 }}
             />
           )}
-          <div className="pointer-events-none absolute inset-0" style={{ background: SCRIM }} />
+          <div ref={scrim} className="pointer-events-none absolute inset-0" style={{ background: SCRIM }} />
           {children}
         </div>
       </div>

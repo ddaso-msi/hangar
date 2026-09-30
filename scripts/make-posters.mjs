@@ -19,6 +19,49 @@ const backdrops = {}
 const seams = {}
 
 /**
+ * The render camera, from Blender coordinates (Z up) into glTF (Y up), with its
+ * vertical field of view. Blender's AUTO sensor fit spans the sensor across the
+ * image's LONGER side, so a portrait frame's sensor is vertical.
+ */
+function renderCamera({ position, target, lens, sensor = 36 }, aspect) {
+  const toGltf = ([x, y, z]) => [x, z, -y]
+  const half = Math.atan(sensor / 2 / lens)
+  const vfov = aspect < 1 ? 2 * half : 2 * Math.atan(Math.tan(half) / aspect)
+  return {
+    position: toGltf(position),
+    target: toGltf(target),
+    vfov: +((vfov * 180) / Math.PI).toFixed(3),
+  }
+}
+
+/**
+ * The still's backdrop as a top-to-bottom colour profile, averaged across a
+ * narrow strip at each side edge (clear of the model). Studio renders are not a
+ * flat colour -- a wall band and a lit floor -- and a flat field would show
+ * exactly where the still ends and the live canvas begins.
+ */
+async function backdropProfile(src, stops = 48) {
+  const { data, info } = await sharp(src).removeAlpha().raw().toBuffer({ resolveWithObject: true })
+  const { width: W, height: H } = info
+  const strip = Math.max(2, Math.round(W * 0.03))
+  const out = []
+  for (let s = 0; s < stops; s++) {
+    const y0 = Math.floor((s / stops) * H), y1 = Math.floor(((s + 1) / stops) * H)
+    const sum = [0, 0, 0]
+    let n = 0
+    for (let y = y0; y < y1; y++)
+      for (const x0 of [0, W - strip])
+        for (let x = x0; x < x0 + strip; x++) {
+          const i = (y * W + x) * 3
+          for (let k = 0; k < 3; k++) sum[k] += data[i + k]
+          n++
+        }
+    out.push('#' + sum.map((v) => Math.round(v / n).toString(16).padStart(2, '0')).join(''))
+  }
+  return out
+}
+
+/**
  * Backdrop colour of a render: the mean of its two upper corner patches. Upper
  * only, because studio renders put a darker floor along the bottom edge. Used to
  * set a portrait hero into a matching field instead of cropping it.
@@ -130,9 +173,21 @@ for (const model of MODELS) {
   }
 
   if (model.seam) {
-    const m = await measureSeam(join(base, model.seam.still), model.seam.band, model.seam.contrast)
-    seams[model.slug] = { view: model.seam.view, stars: model.seam.stars, ...m }
-    console.log(`  seam: fills ${(m.fill * 100).toFixed(1)}% of width, backdrop ${m.backdrop}, aspect ${m.aspect}`)
+    const still = join(base, model.seam.still)
+    const m = await measureSeam(still, model.seam.band, model.seam.contrast)
+    const spec = { view: model.seam.view, stars: model.seam.stars, fit: model.seam.fit ?? 'cover', ...m }
+    if (model.seam.lighting) spec.lighting = model.seam.lighting
+    if (model.seam.camera) spec.camera = renderCamera(model.seam.camera, m.aspect)
+    // A still shown at full height maps its rows 1:1 onto screen rows, so its
+    // backdrop's vertical profile can continue across the side bars and sit
+    // behind the transparent canvas: the wall and floor bands never jump.
+    if (spec.fit === 'height') spec.gradient = await backdropProfile(still)
+    seams[model.slug] = spec
+    console.log(
+      `  seam: fills ${(m.fill * 100).toFixed(1)}% of width, backdrop ${m.backdrop}, aspect ${m.aspect}, fit ${spec.fit}` +
+        (spec.camera ? `, camera vfov ${spec.camera.vfov}°` : '') +
+        (spec.gradient ? `, ${spec.gradient.length}-stop backdrop profile` : '')
+    )
   }
 
   writeFileSync(join(outDir, 'manifest.json'), JSON.stringify(manifest, null, 2))
@@ -153,7 +208,18 @@ if (!only) {
       `export const PLATE_ASPECT: Record<string, Record<string, number>> = ${JSON.stringify(aspects, null, 2)}\n\n` +
       `/** Measured backdrop colour of each model's poster render. */\n` +
       `export const POSTER_BACKDROP: Record<string, string> = ${JSON.stringify(backdrops, null, 2)}\n\n` +
-      `export interface SeamSpec { view: [number, number, number]; stars: boolean; aspect: number; fill: number; backdrop: string }\n` +
+      `export interface SeamCamera { position: [number, number, number]; target: [number, number, number]; vfov: number }\n` +
+      `export interface SeamSpec {\n` +
+      `  view: [number, number, number]; stars: boolean; aspect: number; fill: number; backdrop: string\n` +
+      `  /** 'cover' crops the still to fill the screen; 'height' shows it at full viewport height. */\n` +
+      `  fit: 'cover' | 'height'\n` +
+      `  /** The render camera, in glTF axes. When present the inspector opens on it exactly. */\n` +
+      `  camera?: SeamCamera\n` +
+      `  /** Top-to-bottom backdrop colours, for 'height' seams. */\n` +
+      `  gradient?: string[]\n` +
+      `  /** Overrides the light rig otherwise inferred from the backdrop's brightness. */\n` +
+      `  lighting?: 'studio' | 'space'\n` +
+      `}\n` +
       `export const SEAMS: Record<string, SeamSpec> = ${JSON.stringify(seams, null, 2)}\n`
   )
   console.log(`widths -> src/lib/plates.generated.ts`)

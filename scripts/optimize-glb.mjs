@@ -90,6 +90,19 @@ for (const model of MODELS) {
     prune({ keepAttributes: false, keepLeaves: false })
   )
 
+  // A rigged model must come out still rigged: every mesh with skinning data
+  // bound to a skin, and every clip kept. Otherwise it would load as a statue.
+  const srcDoc = await io.read(src)
+  const clipsIn = srcDoc.getRoot().listAnimations().length
+  if (srcDoc.getRoot().listSkins().length) {
+    const unbound = doc.getRoot().listNodes().filter((n) =>
+      n.getMesh()?.listPrimitives().some((p) => p.getAttribute('JOINTS_0')) && !n.getSkin()
+    )
+    if (unbound.length) throw new Error(`${model.slug}: ${unbound.map((n) => n.getName()).join(', ')} lost its skin`)
+    if (doc.getRoot().listAnimations().length !== clipsIn)
+      throw new Error(`${model.slug}: ${clipsIn} clips in, ${doc.getRoot().listAnimations().length} out`)
+  }
+
   const out = join(outDir, `${model.slug}.glb`)
   await io.write(out, doc)
   const after = statSync(out).size
