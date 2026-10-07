@@ -5,14 +5,15 @@ pages_build_output_dir = "dist"
 [[d1_databases]]
 binding = "DB"
 database_name = "hangar"
-database_id = "local"
+database_id = "3aa6346b-cc02-4ae8-9635-909cbd257e4e"
 migrations_dir = "migrations"
 
 # Source .blend files, texture sets and full-res frame sequences live here.
 # They are served through signed URLs from functions/api/download.ts, never from git.
-[[r2_buckets]]
-binding = "FILES"
-bucket_name = "hangar-assets"
+# R2 is not enabled on the account yet. Uncomment once the bucket exists.
+# [[r2_buckets]]
+# binding = "FILES"
+# bucket_name = "hangar-assets"
 
 # SIGNING_KEY is a secret, never a var: `wrangler pages secret put SIGNING_KEY`.
 # Local dev reads it from .dev.vars (gitignored).

@@ -3,6 +3,10 @@
 Free 3D models, built procedurally in Blender, with a scroll-driven cinematic
 page per model that dissolves into a live WebGL inspector.
 
+**Live site: https://hangar-bbv.pages.dev**
+
+[![Hangar home page](docs/screenshot.png)](https://hangar-bbv.pages.dev)
+
 Vite + React + TypeScript, three.js via react-three-fiber, Lenis for scroll,
 Cloudflare Pages + Functions, D1 for the catalogue, R2 for source downloads.
 
